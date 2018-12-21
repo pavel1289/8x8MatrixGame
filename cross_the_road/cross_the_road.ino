@@ -3,15 +3,17 @@
 #define V0_PIN 9
 #define X_IN A0
 #define Y_IN A1
+#define MATRIX_SIZE 8
 #define TIME_PER_LEVEL 60000                                            //1 minute per level, cars move faster
 LedControl ledControl = LedControl(12, 11, 10, 1);
 LiquidCrystal liquidCrystalDisplay(2, 3, 4, 5, 6, 7);
-bool buildings[8][8];
-bool vehicles[8][8];
-bool buildingsLine[8];
-bool vehiclesLine[8];
+bool buildings[MATRIX_SIZE][MATRIX_SIZE];
+bool vehicles[MATRIX_SIZE][MATRIX_SIZE];
+//bool buildingsLine[8];                                                //these 2 arrays were intended to be of use if the scroll were to be done 
+//bool vehiclesLine[8];                                                 //row by row
 bool gameMode, playerLed, fogLed, carLed, textBlink;
 bool writtenMenuState, highscoreMoved;
+bool scoreLevelChanged;
 int carDirection;
 int positionLine, positionColumn;                                       //variables for the position of the player
 int carSpeed;                                                           //variables for the movement of the vehicles/obstacles
@@ -27,20 +29,20 @@ struct Highscore
 };
 Highscore highscore[11];
 
-void printBuildings(bool buildings[8][8])
+void printBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])
 {
   for(int i = 0; i < 8; i++)
     for(int j = 0; j < 8; j++)
     ledControl.setLed(0, j, i, buildings[i][j]);
 }
 
-void printVehicles(bool vehicles[8][8])
+void printVehicles(bool vehicles[MATRIX_SIZE][MATRIX_SIZE])
 {
   for(int i = 0; i < 8; i++)
     ledControl.setLed(0, i, 5, vehicles[5][i]);
 }
 
-bool checkCollision(bool vehicles[8][8])
+bool checkCollision(bool vehicles[MATRIX_SIZE][MATRIX_SIZE])
 {
   if (positionLine == 5)
     for(int i = 0; i < 8; i++)
@@ -51,13 +53,12 @@ bool checkCollision(bool vehicles[8][8])
 
 void printFog(bool on)
 {
-  for(int i = 0; i < 8; i++)
+  for(int i = 0; i < MATRIX_SIZE; i++)
     ledControl.setLed(0, i, 2, on);
 }
 
-void generateFirstLayoutBuildings(bool buildings[8][8], bool buildingsLine[8])
+void generateFirstLayoutBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8])
 {
-  ///incep de pe linia 7, de cate randuri sa fac strada? de cate randuri sa fac blocurile?poate 2 la blocuri? 1 la strada?
   int tunnel, safePoint;
   carDirection = 0;
   for (int i = 0; i < 8; i++)
@@ -67,15 +68,20 @@ void generateFirstLayoutBuildings(bool buildings[8][8], bool buildingsLine[8])
       buildings[7][i] = 1;
       buildings[6][i] = 1;
     }
+    else
+    {
+      buildings[7][i] = 0;
+      buildings[6][i] = 0;
+    }
   }
-  buildingsLine[7] = 1;
+  /*buildingsLine[7] = 1;
   buildingsLine[6] = 1;
   buildingsLine[5] = 0;
   buildingsLine[4] = 1;
   buildingsLine[3] = 1;
   buildingsLine[2] = 0;
   buildingsLine[1] = 1;
-  buildingsLine[0] = 1;
+  buildingsLine[0] = 1;*/
   for (int i = 0; i < 2; i++)
   {
     tunnel = random(0, 8);
@@ -127,7 +133,7 @@ void generateFirstLayoutBuildings(bool buildings[8][8], bool buildingsLine[8])
   }
 }
 
-void initialize(bool buildings[8][8], bool vehicles[8][8])//, bool buildingsLine[8], bool vehiclesLine[8])
+void initialize(bool buildings[MATRIX_SIZE][MATRIX_SIZE], bool vehicles[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8], bool vehiclesLine[8])
 {
   for(int i = 0; i < 8; i++)
   {
@@ -141,7 +147,7 @@ void initialize(bool buildings[8][8], bool vehicles[8][8])//, bool buildingsLine
   }
 }
 
-void generateBuildings(bool buildings[8][8])//, bool buildingsLine[8])
+void generateBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8])
 {
   int tunnel;
   int safePoint;
@@ -181,7 +187,7 @@ void generateBuildings(bool buildings[8][8])//, bool buildingsLine[8])
     carDirection = 1;
 }
 
-void generateVehicles(bool vehicles[8][8])
+void generateVehicles(bool vehicles[MATRIX_SIZE][MATRIX_SIZE])
 {
   int numberOfVehicles;
   int vehicleLength[2];
@@ -209,7 +215,7 @@ void generateVehicles(bool vehicles[8][8])
   }
 }
 
-void translateThreeRowsDown(bool buildings[8][8], bool vehicles[8][8])//, bool buildingsLine[8], bool vehiclesLine[8])
+void translateThreeRowsDown(bool buildings[MATRIX_SIZE][MATRIX_SIZE], bool vehicles[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8], bool vehiclesLine[8])
 {
   for(int i = 7; i > 2; i--)
   {
@@ -227,7 +233,7 @@ void translateThreeRowsDown(bool buildings[8][8], bool vehicles[8][8])//, bool b
   printVehicles(vehicles);
 }
 
-void carOffset(bool vehicles[8][8])
+void carOffset(bool vehicles[MATRIX_SIZE][MATRIX_SIZE])
 {
   bool tmp[8];
   if (carDirection == 1)
@@ -260,8 +266,9 @@ void carOffset(bool vehicles[8][8])
 
 void getName()
 {
-  int currentCursor = 0;
+  int currentCursor = 0, atLeast3Letters = 0;
   unsigned long currentTime, lastTime;
+  lastTime = millis();
   liquidCrystalDisplay.clear();
   liquidCrystalDisplay.setCursor(0, 1);
   liquidCrystalDisplay.print("Score");
@@ -298,8 +305,11 @@ void getName()
       {
         if (currentCursor == 0)
         {
-          liquidCrystalDisplay.setCursor(0, 0);
-          return ;
+          if (atLeast3Letters == 1)
+          {
+            liquidCrystalDisplay.setCursor(0, 0);
+            return ;
+          }
         }
         else
         {
@@ -312,6 +322,8 @@ void getName()
       }
       else if (positionX > 550)
       {
+        if (atLeast3Letters == 0 && currentCursor == 1)
+          atLeast3Letters = 1;
         if (currentCursor < 7)
         {
           liquidCrystalDisplay.setCursor(currentCursor, 0);
@@ -399,7 +411,7 @@ void initializeTimers()
 
 void generateFirstLayout()
 {
-  generateFirstLayoutBuildings(buildings, buildingsLine);
+  generateFirstLayoutBuildings(buildings);//, buildingsLine);
   generateVehicles(vehicles);
   printBuildings(buildings);
 }
@@ -417,55 +429,24 @@ void initializeVariables()
   menuState = 0;
   writtenMenuState = 0;
   highscoreMoved = 0;
+  scoreLevelChanged = 0;
   score = 0;
   currentCursorLine = 0;
 }
 
-void bugs()
+void playing(unsigned long currentTime)
 {
-  for(int i = 0; i < 8; i++)
-  {
-    for(int j = 0; j < 8; j++)
-    {
-      Serial.print(buildings[i][j]);
-      Serial.print(" ");
-    }
-    Serial.println();
-  }
-}
-
-void setup() {
-  initializeHighscore();
-  initializeLedControl();
-  initializeLCD();
-  initializeTimers();
-  generateFirstLayout();
-  initializeVariables();
-  pinMode(V0_PIN, OUTPUT);
-  pinMode(X_IN, INPUT);
-  pinMode(Y_IN, INPUT);
-  analogWrite(V0_PIN, 90);
-  randomSeed(analogRead(A5));
-  Serial.begin(9600);
-}
-
-void loop() {
-  unsigned long currentTime = millis();
-  if (gameMode == 1)
-  {
-    if (playerLed == 0 && currentTime - lastTimePlayer > 500)               //blinking the led for player
+    if (playerLed == 0 && currentTime - lastTimePlayer > 100)               //blinking the led for player
     {
       playerLed = 1;
       ledControl.setLed(0, positionColumn, positionLine, playerLed);
       lastTimePlayer = currentTime;
-      Serial.println("blink");
     }
-    else if (currentTime - lastTimePlayer > 500)
+    else if (currentTime - lastTimePlayer > 100)
     {
       playerLed = 0;
       ledControl.setLed(0, positionColumn, positionLine, playerLed);
       lastTimePlayer = currentTime;
-      Serial.println("noblink");
     }
     /*if (fogLed == 0 && currentTime - lastTimeFog > 1000)                    //blinking the second road
     {
@@ -569,25 +550,31 @@ void loop() {
       if (positionLine < 4)                                                     //advance with the game once the first road is cleared
       {
         translateThreeRowsDown(buildings, vehicles);
-        positionLine = positionLine + 3;
-        score = score + 1;
-        bugs();
+        positionLine = 7;
+        score = score + 5;
+        scoreLevelChanged = 1;
       }
       if (currentTime - timePlayed > TIME_PER_LEVEL)
       {
         timePlayed = currentTime;
         if (carSpeed > 1)
+        {
           carSpeed--;
+          scoreLevelChanged = 1;
+        }
       }
     }
-  }
-  else
-  {
+    scoreLevelLCD();
+}
+
+void menu(unsigned long currentTime)
+{
     if (score != 0)
     {
       highscore[10].score = score;
       getName();
       sortHighscore();
+      delay(200);
       score = 0;
       menuState = 1;
       cursorScoreLine = 0;
@@ -728,14 +715,55 @@ void loop() {
       liquidCrystalDisplay.begin(16, 2);
       liquidCrystalDisplay.clear();
       liquidCrystalDisplay.setCursor(0, 0);
-      liquidCrystalDisplay.print("Currently");
+      liquidCrystalDisplay.print("Level 1");
       liquidCrystalDisplay.setCursor(0, 1);
-      liquidCrystalDisplay.print("playing...");
+      liquidCrystalDisplay.print("Score 0");
       generateFirstLayout();
       printBuildings(buildings);
       initializeTimers();
       initializeVariables();
       gameMode = 1;
     }
+}
+
+void scoreLevelLCD()
+{
+  if (scoreLevelChanged == 1)
+  {
+    liquidCrystalDisplay.clear();
+    liquidCrystalDisplay.setCursor(0, 0);
+    liquidCrystalDisplay.print("Level");
+    liquidCrystalDisplay.setCursor(6, 0);
+    liquidCrystalDisplay.print(11 - carSpeed);
+    liquidCrystalDisplay.setCursor(0, 1);
+    liquidCrystalDisplay.print("Score");
+    liquidCrystalDisplay.setCursor(6, 1);
+    liquidCrystalDisplay.print(score);
+    scoreLevelChanged = 0;
+  }
+}
+
+void setup() {
+  initializeHighscore();
+  initializeLedControl();
+  initializeLCD();
+  initializeTimers();
+  initializeVariables();
+  pinMode(V0_PIN, OUTPUT);
+  pinMode(X_IN, INPUT);
+  pinMode(Y_IN, INPUT);
+  analogWrite(V0_PIN, 90);
+  randomSeed(analogRead(A5));
+}
+
+void loop() {
+  unsigned long currentTime = millis();
+  if (gameMode == 1)
+  {
+    playing(currentTime);
+  }
+  else
+  {
+    menu(currentTime);
   }
 }
