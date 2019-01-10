@@ -9,8 +9,6 @@ LedControl ledControl = LedControl(12, 11, 10, 1);
 LiquidCrystal liquidCrystalDisplay(2, 3, 4, 5, 6, 7);
 bool buildings[MATRIX_SIZE][MATRIX_SIZE];
 bool vehicles[MATRIX_SIZE][MATRIX_SIZE];
-//bool buildingsLine[8];                                                //these 2 arrays were intended to be of use if the scroll were to be done 
-//bool vehiclesLine[8];                                                 //row by row
 bool gameMode, playerLed, fogLed, carLed, textBlink;
 bool writtenMenuState, highscoreMoved;
 bool scoreLevelChanged;
@@ -57,7 +55,7 @@ void printFog(bool on)
     ledControl.setLed(0, i, 2, on);
 }
 
-void generateFirstLayoutBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8])
+void generateFirstLayoutBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])
 {
   int tunnel, safePoint;
   carDirection = 0;
@@ -74,14 +72,6 @@ void generateFirstLayoutBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])//, b
       buildings[6][i] = 0;
     }
   }
-  /*buildingsLine[7] = 1;
-  buildingsLine[6] = 1;
-  buildingsLine[5] = 0;
-  buildingsLine[4] = 1;
-  buildingsLine[3] = 1;
-  buildingsLine[2] = 0;
-  buildingsLine[1] = 1;
-  buildingsLine[0] = 1;*/
   for (int i = 0; i < 2; i++)
   {
     tunnel = random(0, 8);
@@ -133,12 +123,10 @@ void generateFirstLayoutBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])//, b
   }
 }
 
-void initialize(bool buildings[MATRIX_SIZE][MATRIX_SIZE], bool vehicles[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8], bool vehiclesLine[8])
+void initialize(bool buildings[MATRIX_SIZE][MATRIX_SIZE], bool vehicles[MATRIX_SIZE][MATRIX_SIZE])
 {
   for(int i = 0; i < 8; i++)
   {
-    /*buildingsLine[i] = 0;
-    vehiclesLine[i] = 0;*/
     for(int j = 0; j < 8; j++)
     {
       buildings[i][j] = 0;
@@ -147,7 +135,7 @@ void initialize(bool buildings[MATRIX_SIZE][MATRIX_SIZE], bool vehicles[MATRIX_S
   }
 }
 
-void generateBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8])
+void generateBuildings(bool buildings[MATRIX_SIZE][MATRIX_SIZE])
 {
   int tunnel;
   int safePoint;
@@ -215,17 +203,14 @@ void generateVehicles(bool vehicles[MATRIX_SIZE][MATRIX_SIZE])
   }
 }
 
-void translateThreeRowsDown(bool buildings[MATRIX_SIZE][MATRIX_SIZE], bool vehicles[MATRIX_SIZE][MATRIX_SIZE])//, bool buildingsLine[8], bool vehiclesLine[8])
+void translateThreeRowsDown(bool buildings[MATRIX_SIZE][MATRIX_SIZE], bool vehicles[MATRIX_SIZE][MATRIX_SIZE])
 {
   for(int i = 7; i > 2; i--)
   {
     for(int j = 0; j < 8; j++)
     {
       buildings[i][j] = buildings[i - 3][j];
-      //vehicles[i][j] = vehicles[i + 3][j];
     }
-    /*buildingsLine[i] = buildingsLine[i + 3];
-    vehiclesLine[i] = vehiclesLine[i + 3];*/
   }
   generateBuildings(buildings);
   generateVehicles(vehicles);
@@ -411,7 +396,7 @@ void initializeTimers()
 
 void generateFirstLayout()
 {
-  generateFirstLayoutBuildings(buildings);//, buildingsLine);
+  generateFirstLayoutBuildings(buildings);
   generateVehicles(vehicles);
   printBuildings(buildings);
 }
@@ -448,29 +433,6 @@ void playing(unsigned long currentTime)
       ledControl.setLed(0, positionColumn, positionLine, playerLed);
       lastTimePlayer = currentTime;
     }
-    /*if (fogLed == 0 && currentTime - lastTimeFog > 1000)                    //blinking the second road
-    {
-      fogLed = 1;
-      printFog(fogLed);                                                       //this is commented because some players might not want to have a row
-      lastTimeFog = currentTime;                                              //from the matrix blinking, given the fact that it represents the
-    }                                                                         //second road that can't be "seen"
-    else if (currentTime - lastTimeFog > 1000)
-    {
-      fogLed = 0;
-      printFog(fogLed);
-      lastTimeFog = currentTime;
-    }*/
-    /*if (carLed == 0 && currentTime - lastTimeCars > 200)                    //blinking the vehicles
-    {
-      carLed = 1;
-      printVehicles(vehicles);
-    }                                                                         //blinking the vehicles won't work mainly because the harder it gets
-    else if (currentTime - lastTimeCars > 200)                                //the faster the cars move so it would interfere with their movement
-    {
-      carLed = 0;
-      for(int i = 0; i < 8; i++)
-        ledControl.setLed(0, i, 5, false);
-    }*/
     if (checkCollision(vehicles) == 1)
     {
       gameMode = 0;
@@ -743,7 +705,8 @@ void scoreLevelLCD()
   }
 }
 
-void setup() {
+void setup()
+{
   initializeHighscore();
   initializeLedControl();
   initializeLCD();
@@ -756,7 +719,8 @@ void setup() {
   randomSeed(analogRead(A5));
 }
 
-void loop() {
+void loop()
+{
   unsigned long currentTime = millis();
   if (gameMode == 1)
   {
